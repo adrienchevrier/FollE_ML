@@ -1,0 +1,114 @@
+ self.cat_body.position = init_x+50, init_y+200
+ reward:23
+detail reward: -- 1 -- 0.0 -- 6.64777261791 -- 0.0 -- 3.21957560349e-29 -- 1.22493534475e-13 -- 175
+
+ reading left2:  39
+ reading left:  21
+ reading mid:  39
+ reading right:  39
+ reading right2:  37
+
+
+self.cat_body.position = init_x+50, init_y+150
+ reward:544
+detail reward: -- 1 -- 0.0 -- 528.097990146 -- 0.0 -- 3.21957560349e-29 -- 1.22493534475e-13 -- 170
+
+ reading left2:  39
+ reading left:  16
+ reading mid:  39
+ reading right:  39
+ reading right2:  37
+
+
+self.cat_body.position = init_x+150, init_y+150
+ reward:19
+detail reward: -- 0 -- 0.0 -- 0.0 -- 2.61804808514 -- 3.21957560349e-29 -- 1.22493534475e-13 -- 176
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  22
+ reading right:  39
+ reading right2:  37
+
+
+self.cat_body.position = init_x+150, init_y+100
+ reward:379
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 362.956086779 -- 1.22493534475e-13 -- 171
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  17
+ reading right2:  37
+
+
+self.cat_body.position = init_x+100, init_y+100
+ reward:1072
+detail reward: -- 0 -- 0.0 -- 0.0 -- 1056.19598029 -- 3.21957560349e-29 -- 1.22493534475e-13 -- 168
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  14
+ reading right:  39
+ reading right2:  37
+
+
+self.cat_body.position = init_x+150, init_y+50
+ reward:614
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 598.413420602 -- 1.22493534475e-13 -- 169
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  15
+ reading right2:  37
+
+
+self.cat_body.position = init_x+150, init_y+0
+ reward:16
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 3.21957560349e-29 -- 0.0239756116604 -- 167
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  39
+ reading right2:  11
+
+
+
+
+self.cat_body.position = init_x+150, init_y+20
+ reward:20
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 3.21957560349e-29 -- 6.64777261791 -- 170
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  39
+ reading right2:  14
+
+
+
+
+self.cat_body.position = init_x+200, init_y+20
+
+ reward:126
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 3.21957560349e-29 -- 194.276393499 -- 173
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  39
+ reading right2:  17
+
+
+
+
+ reward:18
+detail reward: -- 0 -- 0.0 -- 0.0 -- 0.0 -- 3.21957560349e-29 -- 1.22493534475e-13 -- 193
+
+ reading left2:  39
+ reading left:  39
+ reading mid:  39
+ reading right:  39
+ reading right2:  37
