@@ -31,7 +31,7 @@ def play(model):
 
         # Tell us something.
         if car_distance % 1000 == 0:
-            print("Current distance: %d frames." % car_distance)
+            print("\n Current distance: %d frames." % car_distance)
 
 
 if __name__ == "__main__":

@@ -19,8 +19,6 @@ import matplotlib.mlab as mlab
 import threading
 import readchar
 
-from tkinter import *
-
 
 # PyGame init
 width = 1000
@@ -204,7 +202,8 @@ class GameState:
             reward = -500
             self.recover_from_crash(driving_direction)
         else:
-            reward= (((1700*mlab.normpdf(readings[0], 20, 2))*color[0]+(3000*mlab.normpdf(readings[1], 15, 2))*color[1]+(6000*mlab.normpdf(readings[2], 15, 2))*color[2]+(3000*mlab.normpdf(readings[3], 15, 2))*color[3]+(1700*mlab.normpdf(readings[4], 20, 2))*color[4])) +( (int(self.sum_readings(readings))-5) / 10)
+            reward_sonar= (((1700*mlab.normpdf(readings[0], 20, 2))*color[0]+(3000*mlab.normpdf(readings[1], 15, 2))*color[1]+(6000*mlab.normpdf(readings[2], 15, 2))*color[2]+(3000*mlab.normpdf(readings[3], 15, 2))*color[3]+(1700*mlab.normpdf(readings[4], 20, 2))*color[4])) +( (int(self.sum_readings(readings))-5) / 10)
+            reward_BLE = mlab.normpdf(readings[0], 20, 2)
         #print data
         #print("\n reward:%d" % (reward))
         #print("\n reading left: ",readings[0])
@@ -377,6 +376,16 @@ class GameState:
 
         return readings
 
+    def get_BLE_readings(self, sensors,xC,yC, angle):
+        for point in sensors:
+                rotated_p = self.get_rotated_point(
+                    x, y, point[0], point[1], angle
+                )
+                d = self.get_BLE_distance(rotated_p[0],rotated_p[1],xC,yC)
+
+
+
+
     def get_arm_distance(self, arm, x, y, angle, offset):
         # Used to count the distance.
         i = 0
@@ -402,6 +411,16 @@ class GameState:
 
             if show_sensors:
                 pygame.draw.circle(screen, (255, 255, 255), (rotated_p), 3)
+
+        # Return the distance for the arm.
+        return i
+
+    def get_BLE_distance(self, xR, yR,xC, yC):
+        # Used to count the distance.
+        i = 0
+
+        # calculate distance between 2 points
+        i = sqrt((xR-xC)*(xR-xC)+(yR-yC)*(yR-yC))
 
         # Return the distance for the arm.
         return i
@@ -444,6 +463,13 @@ class GameState:
             arm_points.append((distance + x + (spread * i), y))
 
         return arm_points
+
+    def make_BLE_sensor(self,x,y):
+        distance = 15   #sensors dis
+        BLE_points = []
+        BLE_points.append(x-5,y+15)
+        BLE_points.append(x-5,y-15)
+        BLE_points.append(x+25,y)
 
     def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):
         # Rotate x_2, y_2 around x_1, y_1 by angle.
@@ -488,49 +514,6 @@ class InputThread (threading.Thread):
 
         exit()
 print("Exiting inputThread")
-
-
-
-
-
-class Window():
-
-    def __init__(self, master):
-
-        self.display1 = Canvas(master, width=150, height=80, relief=RAISED, bd=5)
-        self.display1.grid(row=0,column=0)
-        self.display1.create_rectangle(10, 10, 150, 80, fill='dark red')
-
-        self.slider1 = Scale(master, from_=0, to=100, length=400,
-                tickinterval=10, orient=HORIZONTAL, relief=SUNKEN, bd=5,
-                bg='white', troughcolor='black', sliderrelief=RAISED, command = self.updateCanvas)
-        self.slider1.grid(row=0,column=1)
-
-        self.createdText = self.display1.create_text(50, 20, font = 'Helvatica 28', text = self.slider1.get(), fill = 'white', anchor = NW)
-
-    def updateCanvas(self, sliderVal):
-
-        self.display1.itemconfig(self.createdText, text = sliderVal)
-
-
-
-
-    def run(self):
-        while keyboard_in != 't':
-            pass
-
-
-class WindowThread(threading.Thread):
-    """docstring for WindowThread"""
-    def __init__(self, threadID, name, counter):
-        threading.Thread.__init__(self)
-        self.threadID = threadID
-        self.name = name
-        self.counter = counter
-
-        master = Tk()
-        w = Window(master)
-        master.mainloop()
 
 
 
