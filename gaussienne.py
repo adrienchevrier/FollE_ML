@@ -17,14 +17,14 @@ plt.ylabel("distance")
 
 import matplotlib.pyplot as plt
 
-mu = 15
+mu = 175
 variance = 0.1
 sigma = math.sqrt(variance)
-x = np.linspace(0, 100, 100)
-plt.plot(x,5000*mlab.normpdf(x, mu, 5))
+x = np.linspace(0, 500, 500)
+plt.plot(x,5000*mlab.normpdf(x, mu, 100))
 
 plt.grid()
-plt.xlim(0,40)
+plt.xlim(0,500)
 #plt.ylim(0,0.25)
 plt.show()
 y=5000*mlab.normpdf(15, mu, 2)

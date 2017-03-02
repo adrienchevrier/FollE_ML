@@ -1,4 +1,4 @@
-from flat_game import carmunkStatic
+from flat_game import carmunkBLE as carmunk
 import numpy as np
 import random
 import csv
@@ -10,6 +10,9 @@ NUM_INPUT = 8
 GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
+max_reward = 0
+b_state = []
+max_qVal = 0
 
 def train_net(model, params):
 
@@ -18,15 +21,18 @@ def train_net(model, params):
     observe = 1000  # Number of frames to observe before training.
     epsilon = 1
     train_frames = 1000000  # Number of frames to play.
-    reward =0
-    death=0
     batchSize = params['batchSize']
     buffer = params['buffer']
 
     # Just stuff used below.
     max_car_distance = 0
     car_distance = 0
-    max_reward = 0
+
+    #needed to print information
+    global max_reward
+    global b_state
+    global max_qVal
+    frame =0
     t = 0
     data_collect = []
     replay = []  # stores tuples of (S, A, R, S').
@@ -34,7 +40,7 @@ def train_net(model, params):
     loss_log = []
 
     # Create a new game instance.
-    game_state = carmunkStatic.GameState()
+    game_state = carmunk.GameState()
 
     # Get initial state by doing nothing and getting the state.
     _, state = game_state.frame_step((2))
@@ -46,11 +52,12 @@ def train_net(model, params):
     while t < train_frames:
 
         t += 1
+        frame+=1
         car_distance += 1
 
         # Choose an action.
         if random.random() < epsilon or t < observe:
-            action = np.random.randint(0, 4)  # random 0-1-2
+            action = np.random.randint(0, 4)  # random 0-1-2-3
         else:
             # Get Q values for each action.
             qval = model.predict(state, batch_size=1)
@@ -58,7 +65,6 @@ def train_net(model, params):
 
         # Take action, observe new state and get our treat.
         reward, new_state = game_state.frame_step(action)
-
         # Experience replay storage.
         replay.append((state, action, reward, new_state))
 
@@ -90,10 +96,6 @@ def train_net(model, params):
         if epsilon > 0.1 and t > observe:
             epsilon -= (1/train_frames)
 
-        #Update max
-        if reward > max_reward:
-            max_reward = reward
-
         # We died, so update stuff.
         if reward == -500:
             # Log the car's distance at this T.
@@ -108,20 +110,29 @@ def train_net(model, params):
             fps = car_distance / tot_time
 
             # Output some stuff so we can watch.
-            print("Max: %d at %d\tepsilon %f\t(%d)\t%f fps" %
+            print("\n\nMax distance: %d at %d\nepsilon %f\n(%d)\n%f fps" %
                   (max_car_distance, t, epsilon, car_distance, fps))
-
-            print("Max reward : %d",max_reward)
-
+            print("Max reward : %d\t,\n max qVal : %d\t"%
+                  (max_reward,max_qVal))
+            print('best state',b_state)
+            print("frame:",frame)
             # Reset.
+            max_reward = 0
+            b_state = [0,0,0,0,0]
             car_distance = 0
+            max_qVal = 0
+
             start_time = timeit.default_timer()
 
-            #update death
-            death+=1
-            if t>observe & death>10:
-                return
+        # Save the model every 25,000 frames.
+        if t % 25000 == 0:
+            model.save_weights('saved-models/BLE/BLE' + filename + '-' +
+                               str(t) + '.h5',
+                               overwrite=True)
+            print("Saving model %s - %d" % (filename, t))
 
+    # Log results after we're done all frames.
+    log_results(filename, data_collect, loss_log)
 
 
 def log_results(filename, data_collect, loss_log):
@@ -140,6 +151,11 @@ def process_minibatch(minibatch, model):
     """This does the heavy lifting, aka, the training. It's super jacked."""
     X_train = []
     y_train = []
+
+    #update informations
+    global max_reward
+    global b_state
+    global max_qVal
     # Loop through our batch and create arrays for X and y
     # so that we can fit our model at every step.
     for memory in minibatch:
@@ -151,7 +167,7 @@ def process_minibatch(minibatch, model):
         newQ = model.predict(new_state_m, batch_size=1)
         # Get our best move. I think?
         maxQ = np.max(newQ)
-        y = np.zeros((1, 4))
+        y = np.zeros((1, 7))
         y[:] = old_qval[:]
         # Check for terminal state.
         if reward_m != -500:  # non-terminal state
@@ -159,13 +175,18 @@ def process_minibatch(minibatch, model):
         else:  # terminal state
             update = reward_m
         # Update the value for the action we took.
-        #print("\nfinal reward",update)
         y[0][action_m] = update
         X_train.append(old_state_m.reshape(NUM_INPUT,))
-        y_train.append(y.reshape(4,))
+        y_train.append(y.reshape(7,))
+
+        if reward_m>max_reward:
+            max_reward = reward_m
+            b_state = new_state_m
+            max_qVal = maxQ
 
     X_train = np.array(X_train)
     y_train = np.array(y_train)
+
 
     return X_train, y_train
 

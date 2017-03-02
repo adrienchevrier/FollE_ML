@@ -15,8 +15,8 @@ import matplotlib.mlab as mlab
 # PyGame init
 width = 1000
 height = 700
-init_x = 200
-init_y = 150
+init_x = 150
+init_y = 350
 pygame.init()
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
@@ -39,7 +39,7 @@ class GameState:
         self.space.gravity = pymunk.Vec2d(0., 0.)
 
         # Create the car.
-        self.create_car(init_x, init_y-50, 45)
+        self.create_car(init_x, init_y, 0)
 
         # Record steps.
         self.num_steps = 0
@@ -71,11 +71,11 @@ class GameState:
         self.obstacles = []
         #self.obstacles.append(self.create_obstacle(200, 350, 100))
         self.obstacles.append(self.create_obstacle(700, 200, 125))
-        self.obstacles.append(self.create_obstacle(600, 600, 35))
+        #self.obstacles.append(self.create_obstacle(300, 200, 35))
 
 
         # Create a cat.
-        #self.create_cat()
+        self.create_cat()
 
     def create_obstacle(self, x, y, r):
         c_body = pymunk.Body(pymunk.inf, pymunk.inf)
@@ -89,8 +89,8 @@ class GameState:
     def create_cat(self):
         inertia = pymunk.moment_for_circle(1, 0, 14, (0, 0))
         self.cat_body = pymunk.Body(pymunk.inf, pymunk.inf)
-        #self.cat_body.position = init_x+150, init_y
-        self.cat_body.position = init_x+200, init_y+20
+        self.cat_body.position = init_x+200, init_y
+        #self.cat_body.position = init_x+200, init_y+20
         self.cat_shape = pymunk.Circle(self.cat_body, 30)
         self.cat_shape.color = THECOLORS["orange"]
         self.cat_shape.elasticity = 1.0
@@ -153,9 +153,11 @@ class GameState:
 
         # Get the current location and the readings there.
         x, y = self.car_body.position
+        xC, yC = self.cat_body.position
         readings = self.get_sonar_readings(x, y, self.car_body.angle)
         color = self.verify_detected(x, y, self.car_body.angle)
-        state = np.array([readings])
+        BLE_readings = self.get_BLE_readings(x,y,xC,yC,self.car_body.angle)
+        state = np.array([readings+BLE_readings])
 
         # Set the reward.
         # Car crashed when any reading == 1
@@ -166,24 +168,21 @@ class GameState:
         else:
             ############        Reward max*376*    catClose*124      no cat*11  obectClose*
             #We use a gaussian function to set the reward to the maximum value if the user is bellow the car
-            reward= ((40*color[0]+60*color[1]+(6000*mlab.normpdf(readings[2], 15, 2))*color[2]+60*color[3]+40*color[4])) +( (int(self.sum_readings(readings))-10) / 10)
-            #print("cat detected")
-            #reward = 0
-            #print("no cat")
-            #reward = 2
-            #print("color: %s",self.get_color(arm_middle, x, y, self.car_body.angle))
-            #reward = -5 + int(self.sum_readings(readings) / 10)
-
+            reward_sonar= (((1700*mlab.normpdf(readings[0], 20, 2))+(3000*mlab.normpdf(readings[1], 15, 2))+(6000*mlab.normpdf(readings[2], 15, 2))+(3000*mlab.normpdf(readings[3], 15, 2))+(1700*mlab.normpdf(readings[4], 20, 2))))/5 +( 10*(int(self.sum_readings(readings))-5) / 15)
+            reward_BLE = (70000*mlab.normpdf(BLE_readings[0], 175, 100)+70000*mlab.normpdf(BLE_readings[1], 175, 100)+70000*mlab.normpdf(BLE_readings[2], 175, 100))/3
+            reward = reward_BLE+reward_sonar
         #print data
         print("\n reward:%d" % (reward))
-        print("detail reward:",'--',color[0],'--',color[1],'--',color[2],'--',color[3],'--',color[4])
-        print('--',(1700*mlab.normpdf(readings[0], 20, 2))*color[0],'--',(3000*mlab.normpdf(readings[1], 15, 2))*color[1],'--',(6000*mlab.normpdf(readings[2], 15, 2))*color[2],'--',(3000*mlab.normpdf(readings[3], 15, 2))*color[3],'--',(3000*mlab.normpdf(readings[4], 20, 2))*color[4],'--',int(self.sum_readings(readings)))
+        print("reward BLE :",reward_BLE)
+        print("reward sonar :",reward_sonar)
 
-        print("\n reading left2: ",readings[0])
-        print(" reading left: ",readings[1])
-        print(" reading mid: ",readings[2])
-        print(" reading right: ",readings[3])
-        print(" reading right2: ",readings[4])
+        #print("detail reward:",'--',color[0],'--',color[1],'--',color[2],'--',color[3],'--',color[4])
+        print('--',(1700*mlab.normpdf(readings[0], 20, 2)),'--',(3000*mlab.normpdf(readings[1], 15, 2)),'--',(6000*mlab.normpdf(readings[2], 15, 2)),'--',(3000*mlab.normpdf(readings[3], 15, 2)),'--',(3000*mlab.normpdf(readings[4], 20, 2)),'--',int(self.sum_readings(readings)))
+        print('BLE--',70000*mlab.normpdf(BLE_readings[0], 175, 100),'--',70000*mlab.normpdf(BLE_readings[1], 175, 100),'--',70000*mlab.normpdf(BLE_readings[2], 175, 100))
+        print("state:")
+        print(state)
+
+
 
 
         self.num_steps += 1
@@ -267,6 +266,20 @@ class GameState:
 
         return readings
 
+    def get_BLE_readings(self, xR,yR,xC,yC, angle):
+        d = []
+        sensors = self.make_BLE_sensors(xR,yR)
+        for point in sensors:
+                rotated_p = self.get_rotated_point(
+                    xR, yR, point[0], point[1], angle
+                )
+                d.append(self.get_BLE_distance(rotated_p[0],rotated_p[1],xC,yC))
+
+        if show_sensors:
+            pygame.display.update()
+        return d
+
+
     def get_sonar_readings(self, x, y, angle):
         readings = []
         """
@@ -294,6 +307,19 @@ class GameState:
             pygame.display.update()
 
         return readings
+
+    def get_BLE_distance(self, xR, yR,xC, yC):
+        # Used to count the distance.
+        i = 0
+
+        # calculate distance between 2 points
+        i = math.sqrt((xR-xC)*(xR-xC)+(yR-yC)*(yR-yC))
+
+        if show_sensors:
+                pygame.draw.circle(screen, (255, 255, 255), (xR,yR), 2)
+
+        # Return the distance for the arm.
+        return i
 
     def get_arm_distance(self, arm, x, y, angle, offset):
         # Used to count the distance.
@@ -362,6 +388,16 @@ class GameState:
             arm_points.append((distance + x + (spread * i), y))
 
         return arm_points
+
+    def make_BLE_sensors(self,x,y):
+        distance = 15   #sensors dis
+        BLE_points = []
+        BLE_points.append((x-15,y+15))
+        BLE_points.append((x+25,y))
+        BLE_points.append((x-15,y-15))
+        
+        return BLE_points
+
 
     def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):
         # Rotate x_2, y_2 around x_1, y_1 by angle.
