@@ -6,7 +6,7 @@ from nn import neural_net, LossHistory
 import os.path
 import timeit
 
-NUM_INPUT = 8
+NUM_INPUT = 5
 GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
@@ -17,9 +17,10 @@ def train_net(model, params):
 
     observe = 1000  # Number of frames to observe before training.
     epsilon = 1
-    train_frames = 1000000  # Number of frames to play.
+    train_frames = 1002  # Number of frames to play.
     reward =0
     death=0
+    printstuff = ''
     batchSize = params['batchSize']
     buffer = params['buffer']
 
@@ -37,7 +38,7 @@ def train_net(model, params):
     game_state = carmunkStatic.GameState()
 
     # Get initial state by doing nothing and getting the state.
-    _, state = game_state.frame_step((2))
+    _, state,nothing = game_state.frame_step((2))
 
     # Let's time it.
     start_time = timeit.default_timer()
@@ -56,8 +57,11 @@ def train_net(model, params):
             qval = model.predict(state, batch_size=1)
             action = (np.argmax(qval))  # best
 
+
         # Take action, observe new state and get our treat.
-        reward, new_state = game_state.frame_step(action)
+        reward, new_state, printstuff = game_state.frame_step(action)
+
+        
 
         # Experience replay storage.
         replay.append((state, action, reward, new_state))
@@ -121,6 +125,7 @@ def train_net(model, params):
             death+=1
             if t>observe & death>10:
                 return
+    print(printstuff)
 
 
 
@@ -151,7 +156,7 @@ def process_minibatch(minibatch, model):
         newQ = model.predict(new_state_m, batch_size=1)
         # Get our best move. I think?
         maxQ = np.max(newQ)
-        y = np.zeros((1, 4))
+        y = np.zeros((1, NUM_INPUT-1))
         y[:] = old_qval[:]
         # Check for terminal state.
         if reward_m != -500:  # non-terminal state
@@ -162,7 +167,7 @@ def process_minibatch(minibatch, model):
         #print("\nfinal reward",update)
         y[0][action_m] = update
         X_train.append(old_state_m.reshape(NUM_INPUT,))
-        y_train.append(y.reshape(4,))
+        y_train.append(y.reshape(NUM_INPUT-1,))
 
     X_train = np.array(X_train)
     y_train = np.array(y_train)

@@ -20,8 +20,12 @@ import matplotlib.pyplot as plt
 mu = 175
 variance = 0.1
 sigma = math.sqrt(variance)
-x = np.linspace(0, 500, 500)
-plt.plot(x,5000*mlab.normpdf(x, mu, 100))
+x = np.linspace(0, 40, 500)
+x2 = np.linspace(0, 500, 500)
+plt.plot(x,(1700*mlab.normpdf(readings[0], 20, 2)))
+plt.plot(x,(400*mlab.normpdf(x, 15, 2)))
+plt.plot(x,(200*mlab.normpdf(x, 15, 2)))
+plt.plot((150*100*mlab.normpdf(x2, 215, 100)))
 
 plt.grid()
 plt.xlim(0,500)

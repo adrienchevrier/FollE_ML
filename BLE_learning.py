@@ -6,13 +6,14 @@ from nn import neural_net, LossHistory
 import os.path
 import timeit
 
-NUM_INPUT = 8
+NUM_INPUT = 5
 GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
 max_reward = 0
-b_state = []
+stuff = ''
 max_qVal = 0
+b_state = []
 
 def train_net(model, params):
 
@@ -30,6 +31,7 @@ def train_net(model, params):
 
     #needed to print information
     global max_reward
+    global stuff
     global b_state
     global max_qVal
     frame =0
@@ -43,7 +45,7 @@ def train_net(model, params):
     game_state = carmunk.GameState()
 
     # Get initial state by doing nothing and getting the state.
-    _, state = game_state.frame_step((2))
+    _, state,stuff = game_state.frame_step((2))
 
     # Let's time it.
     start_time = timeit.default_timer()
@@ -64,7 +66,9 @@ def train_net(model, params):
             action = (np.argmax(qval))  # best
 
         # Take action, observe new state and get our treat.
-        reward, new_state = game_state.frame_step(action)
+        reward, new_state,somestuff = game_state.frame_step(action)
+        if reward>max_reward:
+            stuff=somestuff
         # Experience replay storage.
         replay.append((state, action, reward, new_state))
 
@@ -97,7 +101,7 @@ def train_net(model, params):
             epsilon -= (1/train_frames)
 
         # We died, so update stuff.
-        if reward == -500:
+        if reward == -50000:
             # Log the car's distance at this T.
             data_collect.append([t, car_distance])
 
@@ -112,15 +116,17 @@ def train_net(model, params):
             # Output some stuff so we can watch.
             print("\n\nMax distance: %d at %d\nepsilon %f\n(%d)\n%f fps" %
                   (max_car_distance, t, epsilon, car_distance, fps))
-            print("Max reward : %d\t,\n max qVal : %d\t"%
+            print("\n Max reward : %d\t,\n max qVal : %d\t"%
                   (max_reward,max_qVal))
             print('best state',b_state)
-            print("frame:",frame)
+            print(stuff)
+            print("\n frame:",frame)
             # Reset.
             max_reward = 0
-            b_state = [0,0,0,0,0]
+            stuff = ''
             car_distance = 0
             max_qVal = 0
+            b_state = [0,0,0,0,0]
 
             start_time = timeit.default_timer()
 
@@ -154,6 +160,7 @@ def process_minibatch(minibatch, model):
 
     #update informations
     global max_reward
+    global stuff
     global b_state
     global max_qVal
     # Loop through our batch and create arrays for X and y
@@ -167,10 +174,10 @@ def process_minibatch(minibatch, model):
         newQ = model.predict(new_state_m, batch_size=1)
         # Get our best move. I think?
         maxQ = np.max(newQ)
-        y = np.zeros((1, 7))
+        y = np.zeros((1, NUM_INPUT-1))
         y[:] = old_qval[:]
         # Check for terminal state.
-        if reward_m != -500:  # non-terminal state
+        if reward_m != -50000:  # non-terminal state
             update = (reward_m + (GAMMA * maxQ))
         else:  # terminal state
             update = reward_m
@@ -181,8 +188,8 @@ def process_minibatch(minibatch, model):
 
         if reward_m>max_reward:
             max_reward = reward_m
-            b_state = new_state_m
             max_qVal = maxQ
+            b_state = new_state_m
 
     X_train = np.array(X_train)
     y_train = np.array(y_train)

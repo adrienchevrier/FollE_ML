@@ -34,7 +34,7 @@ def neural_net(num_sensors, params, load=''):
     model.add(Dropout(0.2))
 
     # Output layer.
-    model.add(Dense(7, init='lecun_uniform'))
+    model.add(Dense(4, init='lecun_uniform'))
     model.add(Activation('linear'))
 
     rms = RMSprop()

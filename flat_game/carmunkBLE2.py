@@ -1,3 +1,15 @@
+'''
+Simulation of car following user with 5 sensors used for the reward
+3 sensors used to detect the user and determine whether or not he is
+in front of the car.
+State contains the 5 sonars information 
+
+Adrien CHEVRIER
+'''
+
+
+
+
 import sys
 #sys.path.append('/usr/local/lib/python3.5/dist-packages')
 import os
@@ -42,7 +54,6 @@ rc = 10 #coefficient to calculate reward
 
 #Init rewards
 rtab_sonar = [-1,-1,-1,-1,-1,-1]
-rtab_tabBLE = [-1,-1,-1]
 
 global keyboard_in
 keyboard_in = ''
@@ -195,9 +206,9 @@ class GameState:
         x, y = self.car_body.position
         xC, yC = self.cat_body.position
         readings = self.get_sonar_readings(x, y, self.car_body.angle)
-        color = self.verify_detected(x, y, self.car_body.angle)
         BLE_readings = self.get_BLE_readings(x,y,xC,yC,self.car_body.angle)
-        state = np.array([readings+BLE_readings])
+        color = self.detect_with_ble(BLE_readings)
+        state = np.array([readings])
 
         if keyboard_in=='t':
             #os.system("kill -9 %d"%(os.getppid()))
@@ -213,30 +224,90 @@ class GameState:
         # Car crashed when any reading == 1
         if self.car_is_crashed(readings):
             self.crashed = True
-            reward = -50000
+            reward = -500
             self.recover_from_crash(driving_direction)
         else:
             #Calculate reward
-            rtab_sonar[0]=0#(5*rc*mlab.normpdf(readings[0], 20, 2))**2
-            rtab_sonar[1]=0#(10*rc*mlab.normpdf(readings[1], 15, 2))**2
-            rtab_sonar[2]=(20*rc*mlab.normpdf(readings[2], 15, 2))**2
-            rtab_sonar[3]=0#(10*rc*mlab.normpdf(readings[3], 15, 2))**2
-            rtab_sonar[4]=0#(5*rc*mlab.normpdf(readings[4], 20, 2))**2
-            rtab_sonar[5]=(( (int(self.sum_readings(readings))) /10))
-            reward_sonar= sum(rtab_sonar)
-            rtab_tabBLE[0]=((150*rc*mlab.normpdf(BLE_readings[0], 215, 100)))**3
-            rtab_tabBLE[1]=((150*rc*mlab.normpdf(BLE_readings[1], 175, 100)))**3
-            rtab_tabBLE[2]=((150*rc*mlab.normpdf(BLE_readings[2], 215, 100)))**3
-            reward_BLE = sum(rtab_tabBLE)
+            rtab_sonar[0]=(1700*mlab.normpdf(readings[0], 20, 2))*color[0]
+            rtab_sonar[1]=(3000*mlab.normpdf(readings[1], 15, 2))*color[1]
+            rtab_sonar[2]=(6000*mlab.normpdf(readings[2], 15, 2))*color[2]
+            rtab_sonar[3]=(3000*mlab.normpdf(readings[3], 15, 2))*color[3]
+            rtab_sonar[4]=(1700*mlab.normpdf(readings[4], 20, 2))*color[4]
+            rtab_sonar[5]=( (int(self.sum_readings(readings))-5) / 10)
+            reward = sum(rtab_sonar)
 
-            reward = reward_BLE+reward_sonar
-            reward = reward_BLE+reward_sonar
+            print_stuff = "\n\n detect BLE :"+str(color)+"\n\n reward : "+str(reward)+"\n\n RSONARS details :"+str(rtab_sonar)+"\n\n state:"+str(state)
 
-            print_stuff = "\n\n reward BLE :"+str(reward_BLE)+"\n\n reward sonar :"+str(reward_sonar)+"\n\n reward : "+str(reward)+"\n\n RBLE details :"+str(rtab_tabBLE)+"\n\n RSONARS details :"+str(rtab_sonar)+"\n\n state:"+str(state)
 
         self.num_steps += 1
 
         return reward, state,print_stuff
+
+    def detect_with_ble(self,breadings):
+        detected = [-1,-1,-1,-1,-1]
+
+        if (breadings[0]>220) & (breadings[0]<260):
+            if (breadings[1]>205) & (breadings[1]<245):
+                if (breadings[2]>240) & (breadings[2]<280):
+                    detected[0] = 1
+                else:
+                   detected[0] = 0
+            else:
+                   detected[0] = 0
+        else:
+                   detected[0] = 0
+
+        if (breadings[0]>180) & (breadings[0]<220):
+            if (breadings[1]>145) & (breadings[1]<185):
+                if (breadings[2]>190) & (breadings[2]<230):
+                    detected[1] = 1
+                else:
+                   detected[1] = 0
+            else:
+                   detected[1] = 0
+        else:
+                   detected[1] = 0
+
+
+
+
+        if (breadings[0]>195) & (breadings[0]<235):
+            if breadings[1]>155 & (breadings[1]<195):
+                if( breadings[2]>195) & (breadings[2]<235):
+                    detected[2] = 1
+                else:
+                   detected[2] = 0
+            else:
+                   detected[2] = 0
+        else:
+                   detected[2] = 0
+
+
+        if (breadings[0]>190) & (breadings[0]<230):
+            if (breadings[1]>145) & (breadings[1]<185):
+                if (breadings[2]>180) & (breadings[2]<220):
+                    detected[3] = 1
+                else:
+                   detected[3] = 0
+            else:
+                   detected[3] = 0
+        else:
+                   detected[3] = 0
+
+        if (breadings[0]>240) & (breadings[0]<280):
+            if (breadings[1]>205) & (breadings[1]<245):
+                if (breadings[2]>220) & (breadings[2]<260):
+                    detected[4] = 1
+                else:
+                   detected[4] = 0
+            else:
+                   detected[4] = 0
+        else:
+                   detected[4] = 0
+
+        return detected
+
+
 
     def move_obstacles(self):
         # Randomly move obstacles around.
@@ -477,7 +548,7 @@ class GameState:
         d = []
         sensors = self.make_BLE_sensors(xR,yR)
         for point in sensors:
-                rotated_p = self.get_rotated_point(
+                rotated_p = self.get_rotated_BLE(
                     xR, yR, point[0], point[1], angle
                 )
                 d.append(self.get_BLE_distance(rotated_p[0],rotated_p[1],xC,yC))
@@ -494,7 +565,7 @@ class GameState:
         i = math.sqrt((xR-xC)*(xR-xC)+(yR-yC)*(yR-yC))
 
         if show_sensors:
-                pygame.draw.circle(screen, (255, 255, 255), (xR,yR), 2)
+                pygame.draw.circle(screen, (255, 255, 255), (xR,height-yR), 2)
 
         # Return the distance for the arm.
         return i
@@ -517,6 +588,16 @@ class GameState:
             (x_1 - x_2) * math.sin(radians)
         new_x = x_change + x_1
         new_y = height - (y_change + y_1)
+        return int(new_x), int(new_y)
+
+    def get_rotated_BLE(self, x_1, y_1, x_2, y_2, radians):
+        # Rotate x_2, y_2 around x_1, y_1 by angle.
+        x_change = (x_2 - x_1) * math.cos(radians) - \
+            (y_2 - y_1) * math.sin(radians)
+        y_change = (y_2 - y_1) * math.cos(radians) + \
+            (x_2 - x_1) * math.sin(radians)
+        new_x = (x_change +x_1)
+        new_y = y_1+(y_change  )
         return int(new_x), int(new_y)
 
     def get_track_or_not(self, reading):

@@ -1,4 +1,4 @@
-from flat_game import carmunk as carmunk
+from flat_game import carmunkBLE2 as carmunk
 import numpy as np
 import random
 import csv
@@ -11,6 +11,7 @@ GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
 max_reward = 0
+stuff = ''
 b_state = []
 max_qVal = 0
 
@@ -30,6 +31,7 @@ def train_net(model, params):
 
     #needed to print information
     global max_reward
+    global stuff
     global b_state
     global max_qVal
     frame =0
@@ -43,7 +45,7 @@ def train_net(model, params):
     game_state = carmunk.GameState()
 
     # Get initial state by doing nothing and getting the state.
-    _, state = game_state.frame_step((2))
+    _, state,stuff = game_state.frame_step((2))
 
     # Let's time it.
     start_time = timeit.default_timer()
@@ -64,7 +66,9 @@ def train_net(model, params):
             action = (np.argmax(qval))  # best
 
         # Take action, observe new state and get our treat.
-        reward, new_state = game_state.frame_step(action)
+        reward, new_state,somestuff = game_state.frame_step(action)
+        if reward>max_reward:
+            stuff = somestuff
         # Experience replay storage.
         replay.append((state, action, reward, new_state))
 
@@ -115,9 +119,11 @@ def train_net(model, params):
             print("Max reward : %d\t,\n max qVal : %d\t"%
                   (max_reward,max_qVal))
             print('best state',b_state)
+            print(stuff)
             print("frame:",frame)
             # Reset.
             max_reward = 0
+            stuff = ''
             b_state = [0,0,0,0,0]
             car_distance = 0
             max_qVal = 0
@@ -126,7 +132,7 @@ def train_net(model, params):
 
         # Save the model every 25,000 frames.
         if t % 25000 == 0:
-            model.save_weights('saved-models/' + filename + '-' +
+            model.save_weights('saved-models/BLE5SENORS/' + filename + '-' +
                                str(t) + '.h5',
                                overwrite=True)
             print("Saving model %s - %d" % (filename, t))
