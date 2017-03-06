@@ -1,8 +1,12 @@
+import sys
+#sys.path.append('/usr/local/lib/python3.5/dist-packages')
+import os
+
 import random
 import math
 import numpy as np
 
-import pygame
+import pygame as pygame
 from pygame.color import THECOLORS
 
 import pymunk
@@ -12,13 +16,15 @@ from pymunk.pygame_util import draw
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 
+import threading
+import readchar
+
+
 # PyGame init
 width = 1400
 height = 1000
-init_x = 150
-init_y = 350
-rtab_sonar = [-1,-1,-1,-1,-1,-1]
-rtab_tabBLE = [-1,-1,-1]
+init_x = 200
+init_y = 500
 pygame.init()
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
@@ -30,11 +36,36 @@ screen.set_alpha(None)
 show_sensors = True
 draw_screen = True
 
-rc = 10
+auto = False #cat moves automatically or not
+
+rc = 10 #coefficient to calculate reward
+
+#Init rewards
+rtab_sonar = [-1,-1,-1,-1,-1,-1]
+rtab_tabBLE = [-1,-1,-1]
+
+global keyboard_in
+keyboard_in = ''
 
 
 class GameState:
     def __init__(self):
+
+        global keyboard_in 
+        global auto
+
+
+        if auto== False:
+        # Create new threads
+            thread1 = InputThread(1, "InputThread", 1)
+
+        # Start new Threads
+            thread1.start()
+
+
+
+
+
         # Global-ish.
         self.crashed = False
 
@@ -73,9 +104,10 @@ class GameState:
         # Create some obstacles, semi-randomly.
         # We'll create three and they'll move around to prevent over-fitting.
         self.obstacles = []
-        #self.obstacles.append(self.create_obstacle(200, 350, 100))
-        self.obstacles.append(self.create_obstacle(init_x+300, init_y, 125))
-        #self.obstacles.append(self.create_obstacle(300, 200, 35))
+        self.obstacles.append(self.create_obstacle(200, 350, 100))
+        self.obstacles.append(self.create_obstacle(700, 200, 125))
+        self.obstacles.append(self.create_obstacle(600, 800, 35))
+        self.obstacles.append(self.create_obstacle(1000, 350, 100))
 
 
         # Create a cat.
@@ -93,8 +125,7 @@ class GameState:
     def create_cat(self):
         inertia = pymunk.moment_for_circle(1, 0, 14, (0, 0))
         self.cat_body = pymunk.Body(pymunk.inf, pymunk.inf)
-        #self.cat_body.position = init_x+100, init_y-100
-        self.cat_body.position = init_x+200, init_y+500
+        self.cat_body.position = init_x+150, init_y
         self.cat_shape = pymunk.Circle(self.cat_body, 30)
         self.cat_shape.color = THECOLORS["orange"]
         self.cat_shape.elasticity = 1.0
@@ -126,31 +157,36 @@ class GameState:
         self.space.add(self.car_body, self.car_shape)
 
     def frame_step(self, action):
-        #if action == 0:  # Turn left.
-        #    self.car_body.angle -= .2
-        #elif action == 1:  # Turn right.
-        #    self.car_body.angle += .2
+
+        global keyboard_in
+
+        print_stuff = ''
+
+        if action == 0:  # Turn left.
+            self.car_body.angle -= .2
+        elif action == 1:  # Turn right.
+            self.car_body.angle += .2
 
         # Move obstacles.
-        #if self.num_steps % 100 == 0:
-            #self.move_obstacles()
+        if self.num_steps % 100 == 0:
+            self.move_obstacles()
 
         # Move cat.
-        #if self.num_steps % 5 == 0:
-            #self.move_cat()
+        if self.num_steps % 5 == 0:
+            self.move_cat()
 
 
-        #driving_direction = Vec2d(1, 0).rotated(self.car_body.angle)
-        #self.car_body.velocity = 100 * driving_direction
+        driving_direction = Vec2d(1, 0).rotated(self.car_body.angle)
+        self.car_body.velocity = 100 * driving_direction
 
 
-        #if action == 3:
-            #self.car_body.velocity = 0*Vec2d(1, 0).rotated(self.car_body.angle)
+        if action == 3:
+            self.car_body.velocity = 0*Vec2d(1, 0).rotated(self.car_body.angle)
 
         # Update the screen and stuff.
         screen.fill(THECOLORS["black"])
         draw(screen, self.space)
-        #self.space.step(1./10)
+        self.space.step(1./10)
         if draw_screen:
             pygame.display.flip()
         clock.tick()
@@ -159,47 +195,48 @@ class GameState:
         x, y = self.car_body.position
         xC, yC = self.cat_body.position
         readings = self.get_sonar_readings(x, y, self.car_body.angle)
+        color = self.verify_detected(x, y, self.car_body.angle)
         BLE_readings = self.get_BLE_readings(x,y,xC,yC,self.car_body.angle)
-        color = self.detect_with_ble(BLE_readings)
-        state = np.array([readings])
+        state = np.array([readings+BLE_readings])
 
+        if keyboard_in=='t':
+            #os.system("kill -9 %d"%(os.getppid()))
+            exit()
+        elif keyboard_in=='r':
+            print("you killed yourself")
+            readings = [1,1,1,1,1]
+            keyboard_in = ''
+
+        else:
+            pass
         # Set the reward.
         # Car crashed when any reading == 1
         if self.car_is_crashed(readings):
             self.crashed = True
-            reward = -500
-            #self.recover_from_crash(driving_direction)
+            reward = -50000
+            self.recover_from_crash(driving_direction)
         else:
-            ############        Reward max*376*    catClose*124      no cat*11  obectClose*
-            #We use a gaussian function to set the reward to the maximum value if the user is bellow the car
-            rtab_sonar[0]=(1700*mlab.normpdf(readings[0], 20, 2))*color[0]
-            rtab_sonar[1]=(3000*mlab.normpdf(readings[1], 15, 2))*color[1]
-            rtab_sonar[2]=(6000*mlab.normpdf(readings[2], 15, 2))*color[2]
-            rtab_sonar[3]=(3000*mlab.normpdf(readings[3], 15, 2))*color[3]
-            rtab_sonar[4]=(1700*mlab.normpdf(readings[4], 20, 2))*color[4]
-            rtab_sonar[5]=( (int(self.sum_readings(readings))-5) / 10)
-            reward = sum(rtab_sonar)
-        #print data
-        #print("\n reward:%d" % (reward))
-        #print("reward BLE :",reward_BLE)
-        #print("reward sonar :",reward_sonar)
+            #Calculate reward
+            rtab_sonar[0]=0#(5*rc*mlab.normpdf(readings[0], 20, 2))**2
+            rtab_sonar[1]=0#(10*rc*mlab.normpdf(readings[1], 15, 2))**2
+            rtab_sonar[2]=(20*rc*mlab.normpdf(readings[2], 15, 2))**2
+            rtab_sonar[3]=0#(10*rc*mlab.normpdf(readings[3], 15, 2))**2
+            rtab_sonar[4]=0#(5*rc*mlab.normpdf(readings[4], 20, 2))**2
+            rtab_sonar[5]=(( (int(self.sum_readings(readings))) /10))
+            reward_sonar= sum(rtab_sonar)
+            rtab_tabBLE[0]=((150*rc*mlab.normpdf(BLE_readings[0], 215, 100)))**3
+            rtab_tabBLE[1]=((150*rc*mlab.normpdf(BLE_readings[1], 175, 100)))**3
+            rtab_tabBLE[2]=((150*rc*mlab.normpdf(BLE_readings[2], 215, 100)))**3
+            reward_BLE = sum(rtab_tabBLE)
 
-        #print("detail reward:",'--',color[0],'--',color[1],'--',color[2],'--',color[3],'--',color[4])
-        #print("RBLE details :",rtab_tabBLE)
-        #print("RSONARS details :",rtab_sonar)
-        #print("state:")
-        #print(state)
+            reward = reward_BLE+reward_sonar
+            reward = reward_BLE+reward_sonar
 
-        #"\n\n reward BLE :"+str(reward_BLE)+"\n\n reward sonar :"+str(reward_sonar)+
-        print("car pos"+str([x,y]))
-        print_stuff = "\n\n reward sonar :"+str(reward)+"\n\n reward : "+str(reward)+"\n\n RBLE details :"+str(rtab_tabBLE)+"\n\n RSONARS details :"+str(rtab_sonar)+"\n\n state:"+str(state)+"\n\n ble detect:"+str(color)+"\n\n ble readings"+str(BLE_readings)
-
+            print_stuff = "\n\n reward BLE :"+str(reward_BLE)+"\n\n reward sonar :"+str(reward_sonar)+"\n\n reward : "+str(reward)+"\n\n RBLE details :"+str(rtab_tabBLE)+"\n\n RSONARS details :"+str(rtab_sonar)+"\n\n state:"+str(state)
 
         self.num_steps += 1
 
-        return reward, state, print_stuff
-
-
+        return reward, state,print_stuff
 
     def move_obstacles(self):
         # Randomly move obstacles around.
@@ -207,77 +244,38 @@ class GameState:
             speed = random.randint(1, 5)
             direction = Vec2d(1, 0).rotated(self.car_body.angle + random.randint(-2, 2))
             obstacle.velocity = speed * direction
-
-    def detect_with_ble(self,breadings):
-        detected = [-1,-1,-1,-1,-1]
-
-        if (breadings[0]>220) & (breadings[0]<260):
-            if (breadings[1]>205) & (breadings[1]<245):
-                if (breadings[2]>240) & (breadings[2]<280):
-                    detected[0] = 1
-                else:
-                   detected[0] = 0
-            else:
-                   detected[0] = 0
-        else:
-                   detected[0] = 0
-
-        if (breadings[0]>180) & (breadings[0]<220):
-            if (breadings[1]>145) & (breadings[1]<185):
-                if (breadings[2]>190) & (breadings[2]<230):
-                    detected[1] = 1
-                else:
-                   detected[1] = 0
-            else:
-                   detected[1] = 0
-        else:
-                   detected[1] = 0
-
-
-
-
-        if (breadings[0]>195) & (breadings[0]<235):
-            if breadings[1]>155 & (breadings[1]<195):
-                if( breadings[2]>195) & (breadings[2]<235):
-                    detected[2] = 1
-                else:
-                   detected[2] = 0
-            else:
-                   detected[2] = 0
-        else:
-                   detected[2] = 0
-
-
-        if (breadings[0]>190) & (breadings[0]<230):
-            if (breadings[1]>145) & (breadings[1]<185):
-                if (breadings[2]>180) & (breadings[2]<220):
-                    detected[3] = 1
-                else:
-                   detected[3] = 0
-            else:
-                   detected[3] = 0
-        else:
-                   detected[3] = 0
-
-        if (breadings[0]>240) & (breadings[0]<280):
-            if (breadings[1]>205) & (breadings[1]<245):
-                if (breadings[2]>220) & (breadings[2]<260):
-                    detected[4] = 1
-                else:
-                   detected[4] = 0
-            else:
-                   detected[4] = 0
-        else:
-                   detected[4] = 0
-
-        return detected
-
+            direction = Vec2d(1, 0).rotated(self.cat_body.angle)
+            self.cat_body.velocity = speed * direction
 
     def move_cat(self):
-        speed = random.randint(20, 200)
-        self.cat_body.angle -= random.randint(-1, 1)
-        direction = Vec2d(1, 0).rotated(self.cat_body.angle)
-        self.cat_body.velocity = speed * direction
+        global keyboard_in
+        #check if cat in auto move mode or not
+        if auto== True:
+            speed = random.randint(20, 200)
+            self.cat_body.angle -= random.randint(-1, 1)
+            direction = Vec2d(1, 0).rotated(self.cat_body.angle)
+            self.cat_body.velocity = speed * direction
+        else :
+        #if not move according to keys 'zqsd'
+            Vec2d(1, 0).rotated(self.cat_body.angle)
+            self.cat_body.velocity = 0*Vec2d(1, 0).rotated(self.cat_body.angle)
+            if keyboard_in == 'z':
+                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y+4
+                self.cat_shape.angle = 0
+            elif keyboard_in == 'd':
+                self.cat_body.position = self.cat_body.position.x+4, self.cat_body.position.y
+                self.cat_shape.angle = 0.5
+            elif keyboard_in == 's':
+                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y-4
+                self.cat_shape.angle = 1
+            elif keyboard_in == 'q':
+                self.cat_body.position = self.cat_body.position.x-4, self.cat_body.position.y
+                self.cat_shape.angle = -0.5    
+            elif keyboard_in == ' ':
+                self.cat_body.velocity = 0*Vec2d(1, 0).rotated(self.cat_body.angle)
+            else:
+                self.cat_body.velocity = 0*Vec2d(1, 0).rotated(self.cat_body.angle)
+            #keyboard_in = ''
 
     def move_humans(self):
         for human in self.humans:
@@ -287,7 +285,7 @@ class GameState:
             human.velocity = speed * direction
 
     def car_is_crashed(self, readings):
-        if readings[0] == 1 or readings[1] == 1 or readings[2] == 1:
+        if readings[0] == 1 or readings[1] == 1 or readings[2] == 1 or readings[3] == 1 or readings[4] == 1:
             return True
         else:
             return False
@@ -298,18 +296,20 @@ class GameState:
         """
         while self.crashed:
             # Go backwards.
-            #self.car_body.velocity = -100 * driving_direction
-            self.cat_body.position = init_x+300, init_y
-            self.cat_body.position = init_x+300, init_y
+
+            randX = (random.randint(0, 500))*0
+            randY = (random.randint(0, 200))*0
+            self.car_body.velocity = -100 * driving_direction
+            self.cat_body.position = init_x+150+randX, init_y+ randY
             self.cat_body.angle = 0
 
-            self.car_body.position = init_x, init_y
-            self.car_body.position = init_x, init_y
+            self.car_body.position = init_x+ randX, init_y+ randY
             self.car_body.angle = 0
             self.crashed = False
+
+            #self.car_body.velocity = -100 * driving_direction
             
             for i in range(10):
-                #self.car_body.angle += .2  # Turn a little.
                 screen.fill(THECOLORS["red"])  # Red is scary!
                 draw(screen, self.space)
                 self.space.step(1./10)
@@ -324,6 +324,34 @@ class GameState:
             tot += i
         return tot
 
+            #return 1 if cat detected and 0 otherwise
+    def get_check(self,arm,x,y,angle,offset):
+        # Used to count the distance.
+        i = 0
+
+        # Look at each point and see if we've hit something.
+        for point in arm:
+            i += 1
+
+            # Move the point to the right spot.
+            rotated_p = self.get_rotated_point(
+                x, y, point[0], point[1], angle+ offset
+            )
+
+            # Check if we've hit the cat. Return 1
+            # if we did.
+            if rotated_p[0] <= 0 or rotated_p[1] <= 0 \
+                    or rotated_p[0] >= width or rotated_p[1] >= height:
+                return   0
+            else:
+                obs = screen.get_at(rotated_p)
+                if self.get_cat_or_not(obs) == 0:
+                    return 1
+
+        # Return 0 for nothing detected
+        return 0
+
+        #returns array with cat checked values
     def verify_detected(self, x, y, angle):
         #table contain if cat is detected
         readings = []
@@ -338,24 +366,10 @@ class GameState:
         readings.append(self.get_check(arm_left2, x, y, angle, 0.75))
         readings.append(self.get_check(arm_left, x, y, angle, 0.30))
         readings.append(self.get_check(arm_middle, x, y, angle, 0))
-        readings.append(self.get_arm_distance(arm_right, x, y, angle, -0.30))
-        readings.append(self.get_arm_distance(arm_right2, x, y, angle, -0.75))
+        readings.append(self.get_check(arm_right, x, y, angle, -0.30))
+        readings.append(self.get_check(arm_right2, x, y, angle, -0.75))
 
         return readings
-
-    def get_BLE_readings(self, xR,yR,xC,yC, angle):
-        d = []
-        sensors = self.make_BLE_sensors(xR,yR)
-        for point in sensors:
-                rotated_p = self.get_rotated_BLE(
-                    xR, yR, point[0], point[1], angle
-                )
-                d.append(self.get_BLE_distance(rotated_p[0],rotated_p[1],xC,yC))
-
-        if show_sensors:
-            pygame.display.update()
-        return d
-
 
     def get_sonar_readings(self, x, y, angle):
         readings = []
@@ -385,21 +399,9 @@ class GameState:
 
         return readings
 
-    def get_BLE_distance(self, xR, yR,xC, yC):
-        # Used to count the distance.
-        i = 0
-
-        if show_sensors:
-                print("Point drawn"+str([xR,yR]))
-                pygame.draw.circle(screen, (255, 255, 255), [xR,height-yR], 2)
-
-        # calculate distance between 2 points
-        i = math.sqrt((xR-xC)*(xR-xC)+(yR-yC)*(yR-yC))
 
 
 
-        # Return the distance for the arm.
-        return i*1 #multiplicator to fit with reality
 
     def get_arm_distance(self, arm, x, y, angle, offset):
         # Used to count the distance.
@@ -425,14 +427,13 @@ class GameState:
                     return i
 
             if show_sensors:
-
-                pygame.draw.circle(screen, (255, 255, 255), (rotated_p), 2)
+                pygame.draw.circle(screen, (255, 255, 255), (rotated_p), 3)
 
         # Return the distance for the arm.
         return i
 
-    #return 1 if cat detected and 0 otherwise
-    def get_check(self,arm,x,y,angle,offset):
+
+    def get_color(self,arm,x,y,angle):
         # Used to count the distance.
         i = 0
 
@@ -442,22 +443,23 @@ class GameState:
 
             # Move the point to the right spot.
             rotated_p = self.get_rotated_point(
-                x, y, point[0], point[1], angle+ offset
+                x, y, point[0], point[1], angle
             )
 
-            # Check if we've hit the cat. Return 1
+            # Check if we've hit something. Return the current i (distance)
             # if we did.
             if rotated_p[0] <= 0 or rotated_p[1] <= 0 \
                     or rotated_p[0] >= width or rotated_p[1] >= height:
-                return   0
+                return "out"  # Sensor is off the screen.
             else:
                 obs = screen.get_at(rotated_p)
                 if self.get_cat_or_not(obs) == 0:
-                    return 1
+                    return "orange"
+                if self.get_track_or_not(obs)==0:
+                    return "black"
 
-        # Return 0 for nothing detected
-        return 0
-
+        # Return the distance for the arm.
+        return i
 
     def make_sonar_arm(self, x, y):
         spread = 10  # Default spread.
@@ -470,6 +472,34 @@ class GameState:
 
         return arm_points
 
+
+    def get_BLE_readings(self, xR,yR,xC,yC, angle):
+        d = []
+        sensors = self.make_BLE_sensors(xR,yR)
+        for point in sensors:
+                rotated_p = self.get_rotated_point(
+                    xR, yR, point[0], point[1], angle
+                )
+                d.append(self.get_BLE_distance(rotated_p[0],rotated_p[1],xC,yC))
+
+        if show_sensors:
+            pygame.display.update()
+        return d
+
+    def get_BLE_distance(self, xR, yR,xC, yC):
+        # Used to count the distance.
+        i = 0
+
+        # calculate distance between 2 points
+        i = math.sqrt((xR-xC)*(xR-xC)+(yR-yC)*(yR-yC))
+
+        if show_sensors:
+                pygame.draw.circle(screen, (255, 255, 255), (xR,yR), 2)
+
+        # Return the distance for the arm.
+        return i
+
+
     def make_BLE_sensors(self,x,y):
         distance = 15   #sensors dis
         BLE_points = []
@@ -479,7 +509,6 @@ class GameState:
         
         return BLE_points
 
-
     def get_rotated_point(self, x_1, y_1, x_2, y_2, radians):
         # Rotate x_2, y_2 around x_1, y_1 by angle.
         x_change = (x_2 - x_1) * math.cos(radians) + \
@@ -488,16 +517,6 @@ class GameState:
             (x_1 - x_2) * math.sin(radians)
         new_x = x_change + x_1
         new_y = height - (y_change + y_1)
-        return int(new_x), int(new_y)
-
-    def get_rotated_BLE(self, x_1, y_1, x_2, y_2, radians):
-        # Rotate x_2, y_2 around x_1, y_1 by angle.
-        x_change = (x_2 - x_1) * math.cos(radians) - \
-            (y_2 - y_1) * math.sin(radians)
-        y_change = (y_2 - y_1) * math.cos(radians) + \
-            (x_2 - x_1) * math.sin(radians)
-        new_x = (x_change +x_1)
-        new_y = y_1+(y_change  )
         return int(new_x), int(new_y)
 
     def get_track_or_not(self, reading):
@@ -511,6 +530,30 @@ class GameState:
             return 0
         else:
             return 1
+
+
+
+
+
+class InputThread (threading.Thread):
+    def __init__(self, threadID, name, counter):
+        threading.Thread.__init__(self)
+        self.threadID = threadID
+        self.name = name
+        self.counter = counter
+
+    def run(self):
+        print("hello")
+        global keyboard_in 
+        #Read keyboard inputs to do some actions
+        while keyboard_in != 't':
+            keyboard_in= readchar.readchar()
+            sys.stdout.flush()
+
+        exit()
+print("Exiting inputThread")
+
+
 
 if __name__ == "__main__":
     game_state = GameState()

@@ -6,7 +6,7 @@ from nn import neural_net, LossHistory
 import os.path
 import timeit
 
-NUM_INPUT = 5
+NUM_INPUT = 8
 GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
@@ -101,7 +101,7 @@ def train_net(model, params):
             epsilon -= (1/train_frames)
 
         # We died, so update stuff.
-        if reward == -50000:
+        if reward == -500:
             # Log the car's distance at this T.
             data_collect.append([t, car_distance])
 
@@ -126,13 +126,13 @@ def train_net(model, params):
             stuff = ''
             car_distance = 0
             max_qVal = 0
-            b_state = [0,0,0,0,0]
+            b_state = [0,0,0,0,0,0,0,0]
 
             start_time = timeit.default_timer()
 
         # Save the model every 25,000 frames.
         if t % 25000 == 0:
-            model.save_weights('saved-models/BLE/BLE' + filename + '-' +
+            model.save_weights('saved-models/BLE/BLE8' + filename + '-' +
                                str(t) + '.h5',
                                overwrite=True)
             print("Saving model %s - %d" % (filename, t))
@@ -177,14 +177,14 @@ def process_minibatch(minibatch, model):
         y = np.zeros((1, NUM_INPUT-1))
         y[:] = old_qval[:]
         # Check for terminal state.
-        if reward_m != -50000:  # non-terminal state
+        if reward_m != -500:  # non-terminal state
             update = (reward_m + (GAMMA * maxQ))
         else:  # terminal state
             update = reward_m
         # Update the value for the action we took.
         y[0][action_m] = update
         X_train.append(old_state_m.reshape(NUM_INPUT,))
-        y_train.append(y.reshape(7,))
+        y_train.append(y.reshape(NUM_INPUT-1,))
 
         if reward_m>max_reward:
             max_reward = reward_m

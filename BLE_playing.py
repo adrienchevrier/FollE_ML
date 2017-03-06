@@ -35,6 +35,6 @@ def play(model):
 
 
 if __name__ == "__main__":
-    saved_model = 'saved-models/BLE/BLE164-150-100-50000-100000.h5'
+    saved_model = 'saved-models/BLE/BLE8164-150-100-50000-325000.h5'
     model = neural_net(NUM_SENSORS, [164, 150], saved_model)
     play(model)
