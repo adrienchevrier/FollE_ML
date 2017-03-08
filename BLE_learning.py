@@ -1,4 +1,4 @@
-from flat_game import carmunkBLE as carmunk
+from flat_game import carmunkBLE3_4sonars as carmunk
 import numpy as np
 import random
 import csv
@@ -6,7 +6,7 @@ from nn import neural_net, LossHistory
 import os.path
 import timeit
 
-NUM_INPUT = 8
+NUM_INPUT = 7
 GAMMA = 0.9  # Forgetting.
 TUNING = False  # If False, just use arbitrary, pre-selected params.
 
@@ -132,7 +132,7 @@ def train_net(model, params):
 
         # Save the model every 25,000 frames.
         if t % 25000 == 0:
-            model.save_weights('saved-models/BLE/BLE8' + filename + '-' +
+            model.save_weights('saved-models/BLE/4sens/' + filename + '-' +
                                str(t) + '.h5',
                                overwrite=True)
             print("Saving model %s - %d" % (filename, t))

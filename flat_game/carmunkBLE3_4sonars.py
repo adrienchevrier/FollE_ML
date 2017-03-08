@@ -1,8 +1,8 @@
 '''
-Simulation of car following user with 5 sensors used for the reward
+Simulation of car following user with 4 sensors used for the reward
 3 sensors used to detect the user and determine whether or not he is
 in front of the car.
-State contains the 5 sonars and 3 BLE sensors information 
+State contains the 4 sonars and 3 BLE sensors information 
 
 Adrien CHEVRIER
 '''
@@ -53,7 +53,7 @@ auto = False #cat moves automatically or not
 rc = 10 #coefficient to calculate reward
 
 #Init rewards
-rtab_sonar = [-1,-1,-1,-1,-1,-1]
+rtab_sonar = [-1,-1,-1,-1,-1]
 
 global keyboard_in
 keyboard_in = ''
@@ -228,12 +228,11 @@ class GameState:
             self.recover_from_crash(driving_direction)
         else:
             #Calculate reward
-            rtab_sonar[0]=(1700*mlab.normpdf(readings[0], 20, 2))*color[0]
-            rtab_sonar[1]=(3000*mlab.normpdf(readings[1], 15, 2))*color[1]
+            rtab_sonar[0]=(2000*mlab.normpdf(readings[0], 16, 2))*color[0]
+            rtab_sonar[1]=(6000*mlab.normpdf(readings[1], 15, 2))*color[1]
             rtab_sonar[2]=(6000*mlab.normpdf(readings[2], 15, 2))*color[2]
-            rtab_sonar[3]=(3000*mlab.normpdf(readings[3], 15, 2))*color[3]
-            rtab_sonar[4]=(1700*mlab.normpdf(readings[4], 20, 2))*color[4]
-            rtab_sonar[5]=( (int(self.sum_readings(readings))-5) / 10)
+            rtab_sonar[3]=(2000*mlab.normpdf(readings[3], 16, 2))*color[3]
+            rtab_sonar[4]=( (int(self.sum_readings(readings))-5) / 10)
             reward = sum(rtab_sonar)
 
             print_stuff = "\n\n detect BLE :"+str(color)+"\n\n reward : "+str(reward)+"\n\n RSONARS details :"+str(rtab_sonar)+"\n\n state:"+str(state)
@@ -356,7 +355,7 @@ class GameState:
             human.velocity = speed * direction
 
     def car_is_crashed(self, readings):
-        if readings[0] == 1 or readings[1] == 1 or readings[2] == 1 or readings[3] == 1 or readings[4] == 1:
+        if readings[0] == 1 or readings[1] == 1 or readings[2] == 1 or readings[3] == 1:
             return True
         else:
             return False
@@ -453,17 +452,15 @@ class GameState:
         """
         # Make our arms.
         arm_left = self.make_sonar_arm(x, y)
-        arm_middle = arm_left
+        arm_middle = self.make_sonar_arm(x, y-15)
+        arm_middle2 = self.make_sonar_arm(x, y+15)
         arm_right = arm_left
-        arm_left2 = arm_left
-        arm_right2 = arm_left
 
         # Rotate them and get readings.
-        readings.append(self.get_arm_distance(arm_left2, x, y, angle, 0.75))
-        readings.append(self.get_arm_distance(arm_left, x, y, angle, 0.30))
+        readings.append(self.get_arm_distance(arm_left, x, y, angle, 0.75))
         readings.append(self.get_arm_distance(arm_middle, x, y, angle, 0))
-        readings.append(self.get_arm_distance(arm_right, x, y, angle, -0.30))
-        readings.append(self.get_arm_distance(arm_right2, x, y, angle, -0.75))
+        readings.append(self.get_arm_distance(arm_middle2, x, y, angle, 0))
+        readings.append(self.get_arm_distance(arm_right, x, y, angle, -0.75))
 
         if show_sensors:
             pygame.display.update()
