@@ -30,12 +30,12 @@ class Afficheur(Thread):
     #code a executer pendant le thread
     def run(self):
         with verrou:
-            print "Distance Measurement In Progress"
+            print ("Distance Measurement In Progress")
             GPIO.setup(self.Trig,GPIO.OUT)
             GPIO.setup(self.Echo,GPIO.IN)
 
             GPIO.output(self.Trig, False)
-            print "Waiting For Sensor To Settle"
+            print ("Waiting For Sensor To Settle")
             time.sleep(2)
 
             GPIO.output(self.Trig, True)
@@ -55,7 +55,7 @@ class Afficheur(Thread):
             distance = round(distance, 2)
             shared.s_readings[self.num] = distance
 
-            print "Distance:",distance,"cm"
+            print ("Distance:",distance,"cm")
 
 def setup():
     GPIO.setup(TRIG,GPIO.OUT)

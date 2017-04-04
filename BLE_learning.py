@@ -21,7 +21,7 @@ def train_net(model, params):
 
     observe = 1000  # Number of frames to observe before training.
     epsilon = 1
-    train_frames = 1000000  # Number of frames to play.
+    train_frames = 300000  # Number of frames to play.
     batchSize = params['batchSize']
     buffer = params['buffer']
 
@@ -132,7 +132,7 @@ def train_net(model, params):
 
         # Save the model every 25,000 frames.
         if t % 25000 == 0:
-            model.save_weights('saved-models/BLE/4sens/' + filename + '-' +
+            model.save_weights('saved-models/BLE/final/' +'FINAL'+ filename + '-' +
                                str(t) + '.h5',
                                overwrite=True)
             print("Saving model %s - %d" % (filename, t))
@@ -143,11 +143,11 @@ def train_net(model, params):
 
 def log_results(filename, data_collect, loss_log):
     # Save the results to a file so we can graph it later.
-    with open('results/sonar-frames/learn_data-' + filename + '.csv', 'w') as data_dump:
+    with open('results/final/sonar-frames/learn_data-' +'FINAL'+ filename + '.csv', 'w') as data_dump:
         wr = csv.writer(data_dump)
         wr.writerows(data_collect)
 
-    with open('results/sonar-frames/loss_data-' + filename + '.csv', 'w') as lf:
+    with open('results/final/sonar-frames/loss_data-' +'FINAL'+ filename + '.csv', 'w') as lf:
         wr = csv.writer(lf)
         for loss_item in loss_log:
             wr.writerow(loss_item)
@@ -207,10 +207,10 @@ def launch_learn(params):
     filename = params_to_filename(params)
     print("Trying %s" % filename)
     # Make sure we haven't run this one.
-    if not os.path.isfile('results/sonar-frames/loss_data-' + filename + '.csv'):
+    if not os.path.isfile('results/final/sonar-frames/loss_data-' + filename + '.csv'):
         # Create file so we don't double test when we run multiple
         # instances of the script at the same time.
-        open('results/sonar-frames/loss_data-' + filename + '.csv', 'a').close()
+        open('results/final/sonar-frames/loss_data-' + filename + '.csv', 'a').close()
         print("Starting test.")
         # Train.
         model = neural_net(NUM_INPUT, params['nn'])

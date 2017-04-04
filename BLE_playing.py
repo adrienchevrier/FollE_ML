@@ -2,12 +2,12 @@
 Once a model is learned, use this to play it.
 """
 
-from flat_game import carmunkBLE as carmunk
+from flat_game import carmunkBLE3_4sonars as carmunk
 import numpy as np
 from nn import neural_net
 import time
 
-NUM_SENSORS = 8
+NUM_SENSORS = 7
 
 
 def play(model):
@@ -35,6 +35,6 @@ def play(model):
 
 
 if __name__ == "__main__":
-    saved_model = 'saved-models/BLE/BLE8164-150-100-50000-325000.h5'
+    saved_model = 'saved-models/BLE/final/FINAL164-150-100-50000-300000.h5'
     model = neural_net(NUM_SENSORS, [164, 150], saved_model)
     play(model)

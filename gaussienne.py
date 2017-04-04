@@ -10,19 +10,27 @@ data = [1,2,3,4,5,6,7,8,9,10]
 #	data[x] = x
 
 #plt.scatter(data,data)
-plt.title('sensor values')
-plt.xlabel("sensor")
-plt.ylabel("distance")
+plt.title('relation tension/rapport cyclique')
+plt.xlabel("rapport cyclique (%)")
+plt.ylabel("tension (V)")
 #plt.show()
 
-import matplotlib.pyplot as plt
 
-mu = 175
-variance = 0.1
+mu = 0
+variance = 1
 sigma = math.sqrt(variance)
-x = np.linspace(0, 40, 500)
-x2 = np.linspace(0, 500, 500)
-plt.plot(x,(1700*mlab.normpdf(readings[0], 20, 2)))
+x = np.linspace(-3, 3, 100)
+#plt.plot(x,mlab.normpdf(x, mu, sigma))
+
+x2 = []
+y2 = []
+for x in range(0,100):
+	x2.append(x)
+	y2.append(12*x/100)
+
+plt.plot(x2,y2)
+plt.show()
+'''plt.plot(x,(1700*mlab.normpdf(readings[0], 20, 2)))
 plt.plot(x,(400*mlab.normpdf(x, 15, 2)))
 plt.plot(x,(200*mlab.normpdf(x, 15, 2)))
 plt.plot((150*100*mlab.normpdf(x2, 215, 100)))
@@ -41,4 +49,4 @@ print("y=", y)
 
 for x in range(1,20):
  	action = np.random.randint(0, 3)
- 	print("-",action)
+ 	print("-",action)'''

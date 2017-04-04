@@ -48,7 +48,7 @@ screen.set_alpha(None)
 show_sensors = True
 draw_screen = True
 
-auto = False #cat moves automatically or not
+auto = True #cat moves automatically or not
 
 rc = 10 #coefficient to calculate reward
 
@@ -330,16 +330,16 @@ class GameState:
             Vec2d(1, 0).rotated(self.cat_body.angle)
             self.cat_body.velocity = 0*Vec2d(1, 0).rotated(self.cat_body.angle)
             if keyboard_in == 'z':
-                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y+4
+                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y+6
                 self.cat_shape.angle = 0
             elif keyboard_in == 'd':
-                self.cat_body.position = self.cat_body.position.x+4, self.cat_body.position.y
+                self.cat_body.position = self.cat_body.position.x+6, self.cat_body.position.y
                 self.cat_shape.angle = 0.5
             elif keyboard_in == 's':
-                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y-4
+                self.cat_body.position = self.cat_body.position.x, self.cat_body.position.y-6
                 self.cat_shape.angle = 1
             elif keyboard_in == 'q':
-                self.cat_body.position = self.cat_body.position.x-4, self.cat_body.position.y
+                self.cat_body.position = self.cat_body.position.x-6, self.cat_body.position.y
                 self.cat_shape.angle = -0.5    
             elif keyboard_in == ' ':
                 self.cat_body.velocity = 0*Vec2d(1, 0).rotated(self.cat_body.angle)
@@ -452,15 +452,15 @@ class GameState:
         """
         # Make our arms.
         arm_left = self.make_sonar_arm(x, y)
-        arm_middle = self.make_sonar_arm(x, y-15)
-        arm_middle2 = self.make_sonar_arm(x, y+15)
+        arm_middle = self.make_sonar_arm(x+5, y-15)
+        arm_middle2 = self.make_sonar_arm(x+5, y+15)
         arm_right = arm_left
 
         # Rotate them and get readings.
-        readings.append(self.get_arm_distance(arm_left, x, y, angle, 0.75))
+        readings.append(self.get_arm_distance(arm_left, x, y, angle, 0.5))
         readings.append(self.get_arm_distance(arm_middle, x, y, angle, 0))
         readings.append(self.get_arm_distance(arm_middle2, x, y, angle, 0))
-        readings.append(self.get_arm_distance(arm_right, x, y, angle, -0.75))
+        readings.append(self.get_arm_distance(arm_right, x, y, angle, -0.5))
 
         if show_sensors:
             pygame.display.update()

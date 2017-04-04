@@ -7,19 +7,16 @@ import rasp_playing
 def main():
 	#Init threads
 	shared.init()
-	saved_model = 'saved-models/BLE/4sens/164-150-100-50000-150000.h5'
+	saved_model = 'saved-models/BLE/BLE8164-150-100-50000-325000.h5'
     model = neural_net(NUM_SENSORS, [164, 150], saved_model)
 	#Threads handling sonar readings
 	sonarclass = sonar_thread.Afficheur()
-	sonarclass.setup()
+	mot_thread.setup()
 
-	motclass = mot_thread.motor_class()
-	motclass.setup()
+	motclass0 = mot_thread.motor_class(0)
 
     p = rasp_playing.player(model)
     p.play()
-
-
 
 
 if __name__ == '__main__':
