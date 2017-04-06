@@ -1,0 +1,5 @@
+Doucment permettant l'utilisation de la balance:
+
+- Installer les librairies BLUEZ et Py-Blue
+- Réaliser le schéma électronique de la balance
+- Exécuetr le script script_uuid_server.sh
